@@ -20,7 +20,7 @@ The SPI class must implement :
     void endTransaction(): end transaction.
 
 If the user SPI API doesnt provide these implementations, an adapter can be used.
-Wire implementation
+### Wire implementation
 
 The user must provide a WIRE implementation to set pin and read from pin.
 The WIRE class must implement:
