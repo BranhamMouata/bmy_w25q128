@@ -3,6 +3,7 @@
 #include "w25q128_params.h"
 #include "wire_concept.h"
 #include <stdint.h>
+#include <array>
 namespace bmy {
 template <spi_com SPI_COM, wire_handler WIRE> class W25Q128FlashMemTest;
 
