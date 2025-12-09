@@ -1,11 +1,11 @@
 #pragma once
+#include "iohandler_concept.h"
 #include "spi_concept.h"
 #include "w25q128_params.h"
-#include "wire_concept.h"
-#include <stdint.h>
 #include <array>
+#include <stdint.h>
 namespace bmy {
-template <spi_com SPI_COM, wire_handler WIRE> class W25Q128FlashMemTest;
+template <spi_com SPI_COM, iohandler_concept IOHANDLER> class W25Q128FlashMemTest;
 
 /**
  * @brief Driver wrapper for the W25Q128 SPI flash device.
@@ -16,7 +16,7 @@ template <spi_com SPI_COM, wire_handler WIRE> class W25Q128FlashMemTest;
  * @tparam SPI_COM   Type implementing the SPI communication concept (must
  *                   provide transfer/beginTransaction/endTransaction semantics
  *                   expected by the implementation).
- * @tparam WIRE      Type implementing simple wire operations (digitalWrite,
+ * @tparam IOHANDLER      Type implementing simple wire operations (digitalWrite,
  *                   pinMode, delay, ...). Used for chip-select and control
  *                   signalling.
  *
@@ -32,13 +32,13 @@ template <spi_com SPI_COM, wire_handler WIRE> class W25Q128FlashMemTest;
  * the public API. The implementation expects a 24-bit address space and
  * provides methods to operate on pages and sectors.
  */
-template <spi_com SPI_COM, wire_handler WIRE> class W25Q128FlashMem {
-  friend W25Q128FlashMemTest<SPI_COM, WIRE>;
+template <spi_com SPI_COM, iohandler_concept IOHANDLER> class W25Q128FlashMem {
+  friend W25Q128FlashMemTest<SPI_COM, IOHANDLER>;
 
 public:
   using SPI_TYPE = SPI_COM;
-  using WIRE_TYPE = WIRE;
-  W25Q128FlashMem(SPI_COM *spi, WIRE *wire) : spi_(spi), wire_(wire) {}
+  using IOHANDLER_TYPE = IOHANDLER;
+  W25Q128FlashMem(SPI_COM *spi, IOHANDLER *wire) : spi_(spi), wire_(wire) {}
   W25Q128FlashMem(const W25Q128FlashMem &) = delete;
   W25Q128FlashMem(W25Q128FlashMem &&) = delete;
   ~W25Q128FlashMem();
@@ -265,7 +265,7 @@ private:
   // spi interface
   SPI_COM *spi_;
   // wire interface
-  WIRE *wire_;
+  IOHANDLER *wire_;
 };
 } // namespace bmy
 #include "w25q128.tpp"

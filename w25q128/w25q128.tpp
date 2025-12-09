@@ -1,21 +1,21 @@
 #include "spi_concept.h"
 #include "w25q128_instructions.h"
 namespace bmy {
-template <spi_com SPI_COM, wire_handler WIRE>
+template <spi_com SPI_COM, iohandler_concept IOHANDLER>
 /**
  * @brief Destructor - ensure writes are disabled when the driver is destroyed.
  */
-W25Q128FlashMem<SPI_COM, WIRE>::~W25Q128FlashMem() {
+W25Q128FlashMem<SPI_COM, IOHANDLER>::~W25Q128FlashMem() {
   write_disable();
 }
-template <spi_com SPI_COM, wire_handler WIRE>
+template <spi_com SPI_COM, iohandler_concept IOHANDLER>
 /**
  * @brief Initialize driver hardware bindings and reset the device.
  *
  * Configures the provided chip-select pin as an output, drives it high
  * (device deselected) and performs a reset sequence.
  */
-void W25Q128FlashMem<SPI_COM, WIRE>::init(uint8_t chip_select_pin, uint32_t clock_speed) {
+void W25Q128FlashMem<SPI_COM, IOHANDLER>::init(uint8_t chip_select_pin, uint32_t clock_speed) {
   //------- Init the device
   clock_speed_ = clock_speed;
   chip_select_pin_ = chip_select_pin;
@@ -25,18 +25,18 @@ void W25Q128FlashMem<SPI_COM, WIRE>::init(uint8_t chip_select_pin, uint32_t cloc
   // reset the device
   reset_device();
 }
-template <spi_com SPI_COM, wire_handler WIRE>
+template <spi_com SPI_COM, iohandler_concept IOHANDLER>
 /**
  * @brief Close the driver and reset the device to a known state.
  */
-void W25Q128FlashMem<SPI_COM, WIRE>::close() {
+void W25Q128FlashMem<SPI_COM, IOHANDLER>::close() {
   reset_device();
 }
-template <spi_com SPI_COM, wire_handler WIRE>
+template <spi_com SPI_COM, iohandler_concept IOHANDLER>
 /**
  * @brief Send the Write Enable command to set the WEL bit in the status register.
  */
-void W25Q128FlashMem<SPI_COM, WIRE>::write_enable() const {
+void W25Q128FlashMem<SPI_COM, IOHANDLER>::write_enable() const {
   spi_->beginTransaction(clock_speed_, spi::BitOrder::MSBFIRST, spi::Mode::SPI_MODE3);
   wire_->write(chip_select_pin_, wire::PinStatus::LOW);
   // transfer instruction
@@ -46,18 +46,18 @@ void W25Q128FlashMem<SPI_COM, WIRE>::write_enable() const {
   wire_->write(chip_select_pin_, wire::PinStatus::HIGH);
   spi_->endTransaction();
 }
-template <spi_com SPI_COM, wire_handler WIRE>
+template <spi_com SPI_COM, iohandler_concept IOHANDLER>
 /**
  * @brief Return true if the Write Enable Latch (WEL) is set in status reg1.
  */
-bool W25Q128FlashMem<SPI_COM, WIRE>::is_write_enable() const {
+bool W25Q128FlashMem<SPI_COM, IOHANDLER>::is_write_enable() const {
   return ((read_status_register(w25q128::StatusRegister::kRegister1) & 0x02) >> 1) == 1;
 }
-template <spi_com SPI_COM, wire_handler WIRE>
+template <spi_com SPI_COM, iohandler_concept IOHANDLER>
 /**
  * @brief Enable volatile write to the status register (device-specific).
  */
-void W25Q128FlashMem<SPI_COM, WIRE>::volatile_sr_write_enable() const {
+void W25Q128FlashMem<SPI_COM, IOHANDLER>::volatile_sr_write_enable() const {
   spi_->beginTransaction(clock_speed_, spi::BitOrder::MSBFIRST, spi::Mode::SPI_MODE3);
   wire_->write(chip_select_pin_, wire::PinStatus::LOW);
   // transfer instruction
@@ -67,11 +67,11 @@ void W25Q128FlashMem<SPI_COM, WIRE>::volatile_sr_write_enable() const {
   wire_->write(chip_select_pin_, wire::PinStatus::HIGH);
   spi_->endTransaction();
 }
-template <spi_com SPI_COM, wire_handler WIRE>
+template <spi_com SPI_COM, iohandler_concept IOHANDLER>
 /**
  * @brief Send the Write Disable command (clears WEL).
  */
-void W25Q128FlashMem<SPI_COM, WIRE>::write_disable() const {
+void W25Q128FlashMem<SPI_COM, IOHANDLER>::write_disable() const {
   spi_->beginTransaction(clock_speed_, spi::BitOrder::MSBFIRST, spi::Mode::SPI_MODE3);
   wire_->write(chip_select_pin_, wire::PinStatus::LOW);
   // transfer instruction
@@ -81,12 +81,12 @@ void W25Q128FlashMem<SPI_COM, WIRE>::write_disable() const {
   wire_->write(chip_select_pin_, wire::PinStatus::HIGH);
   spi_->endTransaction();
 }
-template <spi_com SPI_COM, wire_handler WIRE>
+template <spi_com SPI_COM, iohandler_concept IOHANDLER>
 /**
  * @brief Read the Device ID (single-byte) using the Device ID instruction.
  * @return Device ID byte returned by the flash.
  */
-uint8_t W25Q128FlashMem<SPI_COM, WIRE>::read_device_id() const {
+uint8_t W25Q128FlashMem<SPI_COM, IOHANDLER>::read_device_id() const {
   spi_->beginTransaction(clock_speed_, spi::BitOrder::MSBFIRST, spi::Mode::SPI_MODE3);
   wire_->write(chip_select_pin_, wire::PinStatus::LOW);
   //  transfer instruction
@@ -103,12 +103,12 @@ uint8_t W25Q128FlashMem<SPI_COM, WIRE>::read_device_id() const {
   spi_->endTransaction();
   return device_id;
 }
-template <spi_com SPI_COM, wire_handler WIRE>
+template <spi_com SPI_COM, iohandler_concept IOHANDLER>
 /**
  * @brief Read the 3-byte JEDEC ID (manufacturer, memory type, capacity).
  * @return std::array with 3 ID bytes.
  */
-std::array<uint8_t, 3> W25Q128FlashMem<SPI_COM, WIRE>::read_jedec_id() const {
+std::array<uint8_t, 3> W25Q128FlashMem<SPI_COM, IOHANDLER>::read_jedec_id() const {
   spi_->beginTransaction(clock_speed_, spi::BitOrder::MSBFIRST, spi::Mode::SPI_MODE3);
   wire_->write(chip_select_pin_, wire::PinStatus::LOW);
   // transfer instruction
@@ -123,12 +123,12 @@ std::array<uint8_t, 3> W25Q128FlashMem<SPI_COM, WIRE>::read_jedec_id() const {
   spi_->endTransaction();
   return value;
 }
-template <spi_com SPI_COM, wire_handler WIRE>
+template <spi_com SPI_COM, iohandler_concept IOHANDLER>
 /**
  * @brief Convert a 24-bit address (LSB in the low bytes of the value) into
  * a big-endian byte-packed uint32_t suitable for MSB-first transfer.
  */
-uint32_t W25Q128FlashMem<SPI_COM, WIRE>::to_msb(uint32_t addr_lsb) {
+uint32_t W25Q128FlashMem<SPI_COM, IOHANDLER>::to_msb(uint32_t addr_lsb) {
   auto *addr_ptr = reinterpret_cast<uint8_t *>(&addr_lsb) + addr_size_ - 1;
   uint32_t addr_msb{};
   auto *addr_msb_ptr = reinterpret_cast<uint8_t *>(&addr_msb);
@@ -139,11 +139,12 @@ uint32_t W25Q128FlashMem<SPI_COM, WIRE>::to_msb(uint32_t addr_lsb) {
   }
   return addr_msb;
 }
-template <spi_com SPI_COM, wire_handler WIRE>
+template <spi_com SPI_COM, iohandler_concept IOHANDLER>
 /**
  * @brief Read `size` bytes starting at `addr` using the standard read command.
  */
-void W25Q128FlashMem<SPI_COM, WIRE>::read(uint32_t addr, uint8_t *buffer, uint32_t size) const {
+void W25Q128FlashMem<SPI_COM, IOHANDLER>::read(uint32_t addr, uint8_t *buffer,
+                                               uint32_t size) const {
   auto instruct = static_cast<uint8_t>(w25q128::Instruction::kReadData);
   spi_->beginTransaction(clock_speed_, spi::BitOrder::MSBFIRST, spi::Mode::SPI_MODE3);
   wire_->write(chip_select_pin_, wire::PinStatus::LOW);
@@ -159,12 +160,12 @@ void W25Q128FlashMem<SPI_COM, WIRE>::read(uint32_t addr, uint8_t *buffer, uint32
   wire_->write(chip_select_pin_, wire::PinStatus::HIGH);
   spi_->endTransaction();
 }
-template <spi_com SPI_COM, wire_handler WIRE>
+template <spi_com SPI_COM, iohandler_concept IOHANDLER>
 /**
  * @brief Fast read variant which issues a dummy cycle and then bursts data.
  */
-void W25Q128FlashMem<SPI_COM, WIRE>::fast_read(uint32_t addr, uint8_t *buffer,
-                                               uint32_t size) const {
+void W25Q128FlashMem<SPI_COM, IOHANDLER>::fast_read(uint32_t addr, uint8_t *buffer,
+                                                    uint32_t size) const {
   auto instruct = static_cast<uint8_t>(w25q128::Instruction::kFastReadData);
   spi_->beginTransaction(clock_speed_, spi::BitOrder::MSBFIRST, spi::Mode::SPI_MODE3);
   wire_->write(chip_select_pin_, wire::PinStatus::LOW);
@@ -183,9 +184,9 @@ void W25Q128FlashMem<SPI_COM, WIRE>::fast_read(uint32_t addr, uint8_t *buffer,
 // NB: The SPI communication is full duplex, that means when writting the buffer to external memory,
 // the input buffer will be overwritten with data (dummy 0) received from the device. If it's
 // necessary, byte data can be copied and transfert to preserve the input buffer.
-template <spi_com SPI_COM, wire_handler WIRE>
-uint16_t W25Q128FlashMem<SPI_COM, WIRE>::page_program(uint32_t addr, uint8_t *buffer,
-                                                      uint16_t size) {
+template <spi_com SPI_COM, iohandler_concept IOHANDLER>
+uint16_t W25Q128FlashMem<SPI_COM, IOHANDLER>::page_program(uint32_t addr, uint8_t *buffer,
+                                                           uint16_t size) {
   // check if address is clear by computing the corresponding sector
   const auto sector_end =
       compute_sector_addr(mem_write_pos_, w25q128::SectorSize::k4KB) + w25q128::kSector4KBSize - 1;
@@ -226,17 +227,18 @@ uint16_t W25Q128FlashMem<SPI_COM, WIRE>::page_program(uint32_t addr, uint8_t *bu
 // NB: The SPI communication is full duplex, that means when writting the buffer to external memory,
 // the input buffer will be overwritten with data (dummy 0) received from the device. If it's
 // necessary, byte data can be copied and transfert to preserve the input buffer.
-template <spi_com SPI_COM, wire_handler WIRE>
-void W25Q128FlashMem<SPI_COM, WIRE>::multi_pages_program(uint32_t addr, uint8_t *buffer,
-                                                         uint32_t size) {
+template <spi_com SPI_COM, iohandler_concept IOHANDLER>
+void W25Q128FlashMem<SPI_COM, IOHANDLER>::multi_pages_program(uint32_t addr, uint8_t *buffer,
+                                                              uint32_t size) {
   uint32_t nbytes_written{};
   while (nbytes_written < size) {
     nbytes_written +=
         page_program(addr + nbytes_written, buffer + nbytes_written, size - nbytes_written);
   }
 }
-template <spi_com SPI_COM, wire_handler WIRE>
-void W25Q128FlashMem<SPI_COM, WIRE>::sector_erase(uint32_t addr, w25q128::SectorSize sector) const {
+template <spi_com SPI_COM, iohandler_concept IOHANDLER>
+void W25Q128FlashMem<SPI_COM, IOHANDLER>::sector_erase(uint32_t addr,
+                                                       w25q128::SectorSize sector) const {
   // compute the addr corresponding to the sector
   const auto sec_addr = compute_sector_addr(addr, sector);
   while (is_busy()) {
@@ -273,8 +275,8 @@ void W25Q128FlashMem<SPI_COM, WIRE>::sector_erase(uint32_t addr, w25q128::Sector
   wire_->write(chip_select_pin_, wire::PinStatus::HIGH);
   spi_->endTransaction();
 }
-template <spi_com SPI_COM, wire_handler WIRE>
-bool W25Q128FlashMem<SPI_COM, WIRE>::erase(uint32_t addr, uint32_t size) const {
+template <spi_com SPI_COM, iohandler_concept IOHANDLER>
+bool W25Q128FlashMem<SPI_COM, IOHANDLER>::erase(uint32_t addr, uint32_t size) const {
   switch (size) {
   case static_cast<uint32_t>(w25q128::SectorSize::k4KB):
     sector_erase(addr, w25q128::SectorSize::k4KB);
@@ -290,8 +292,8 @@ bool W25Q128FlashMem<SPI_COM, WIRE>::erase(uint32_t addr, uint32_t size) const {
   }
   return true;
 }
-template <spi_com SPI_COM, wire_handler WIRE>
-void W25Q128FlashMem<SPI_COM, WIRE>::chip_erase() const {
+template <spi_com SPI_COM, iohandler_concept IOHANDLER>
+void W25Q128FlashMem<SPI_COM, IOHANDLER>::chip_erase() const {
   while (is_busy()) {
     // Wait until the device is free
   }
@@ -304,8 +306,9 @@ void W25Q128FlashMem<SPI_COM, WIRE>::chip_erase() const {
   wire_->write(chip_select_pin_, wire::PinStatus::HIGH);
   spi_->endTransaction();
 }
-template <spi_com SPI_COM, wire_handler WIRE>
-uint8_t W25Q128FlashMem<SPI_COM, WIRE>::read_status_register(w25q128::StatusRegister reg) const {
+template <spi_com SPI_COM, iohandler_concept IOHANDLER>
+uint8_t
+W25Q128FlashMem<SPI_COM, IOHANDLER>::read_status_register(w25q128::StatusRegister reg) const {
   // transfer instruction and read a single status byte
   uint8_t instruct;
   switch (reg) {
@@ -331,9 +334,9 @@ uint8_t W25Q128FlashMem<SPI_COM, WIRE>::read_status_register(w25q128::StatusRegi
   spi_->endTransaction();
   return value;
 }
-template <spi_com SPI_COM, wire_handler WIRE>
-void W25Q128FlashMem<SPI_COM, WIRE>::write_status_register(uint8_t data,
-                                                           w25q128::StatusRegister reg) const {
+template <spi_com SPI_COM, iohandler_concept IOHANDLER>
+void W25Q128FlashMem<SPI_COM, IOHANDLER>::write_status_register(uint8_t data,
+                                                                w25q128::StatusRegister reg) const {
   while (is_busy()) {
     // Wait until the device is free
   }
@@ -357,8 +360,8 @@ void W25Q128FlashMem<SPI_COM, WIRE>::write_status_register(uint8_t data,
   wire_->write(chip_select_pin_, wire::PinStatus::HIGH);
   spi_->endTransaction();
 }
-template <spi_com SPI_COM, wire_handler WIRE>
-uint8_t W25Q128FlashMem<SPI_COM, WIRE>::read_sfdp_register(uint8_t addr) const {
+template <spi_com SPI_COM, iohandler_concept IOHANDLER>
+uint8_t W25Q128FlashMem<SPI_COM, IOHANDLER>::read_sfdp_register(uint8_t addr) const {
   auto instruct = static_cast<uint8_t>(w25q128::Instruction::kReadSFDPRegister);
   spi_->beginTransaction(clock_speed_, spi::BitOrder::MSBFIRST, spi::Mode::SPI_MODE3);
   wire_->write(chip_select_pin_, wire::PinStatus::LOW);
@@ -381,8 +384,8 @@ uint8_t W25Q128FlashMem<SPI_COM, WIRE>::read_sfdp_register(uint8_t addr) const {
 /**
  * @brief Erase a security register page starting at `addr`.
  */
-template <spi_com SPI_COM, wire_handler WIRE>
-void W25Q128FlashMem<SPI_COM, WIRE>::erase_security_register(uint8_t addr) const {
+template <spi_com SPI_COM, iohandler_concept IOHANDLER>
+void W25Q128FlashMem<SPI_COM, IOHANDLER>::erase_security_register(uint8_t addr) const {
   while (is_busy()) {
     // Wait until the device is free
   }
@@ -402,9 +405,9 @@ void W25Q128FlashMem<SPI_COM, WIRE>::erase_security_register(uint8_t addr) const
 /**
  * @brief Program a security register page.
  */
-template <spi_com SPI_COM, wire_handler WIRE>
-void W25Q128FlashMem<SPI_COM, WIRE>::program_security_register(uint32_t addr, uint8_t *buffer,
-                                                               uint16_t size) const {
+template <spi_com SPI_COM, iohandler_concept IOHANDLER>
+void W25Q128FlashMem<SPI_COM, IOHANDLER>::program_security_register(uint32_t addr, uint8_t *buffer,
+                                                                    uint16_t size) const {
   while (is_busy()) {
     // Wait until the device is free
   }
@@ -429,9 +432,9 @@ void W25Q128FlashMem<SPI_COM, WIRE>::program_security_register(uint32_t addr, ui
 /**
  * @brief Read from a security register page into `buffer`.
  */
-template <spi_com SPI_COM, wire_handler WIRE>
-void W25Q128FlashMem<SPI_COM, WIRE>::read_security_register(uint32_t addr, uint8_t *buffer,
-                                                            uint16_t size) const {
+template <spi_com SPI_COM, iohandler_concept IOHANDLER>
+void W25Q128FlashMem<SPI_COM, IOHANDLER>::read_security_register(uint32_t addr, uint8_t *buffer,
+                                                                 uint16_t size) const {
   auto instruct = static_cast<uint8_t>(w25q128::Instruction::kReadSecurityRegister);
   spi_->beginTransaction(clock_speed_, spi::BitOrder::MSBFIRST, spi::Mode::SPI_MODE3);
   wire_->write(chip_select_pin_, wire::PinStatus::LOW);
@@ -456,8 +459,8 @@ void W25Q128FlashMem<SPI_COM, WIRE>::read_security_register(uint32_t addr, uint8
 /**
  * @brief Lock all blocks globally (write-protect entire device).
  */
-template <spi_com SPI_COM, wire_handler WIRE>
-void W25Q128FlashMem<SPI_COM, WIRE>::global_block_lock() const {
+template <spi_com SPI_COM, iohandler_concept IOHANDLER>
+void W25Q128FlashMem<SPI_COM, IOHANDLER>::global_block_lock() const {
   spi_->beginTransaction(clock_speed_, spi::BitOrder::MSBFIRST, spi::Mode::SPI_MODE3);
   wire_->write(chip_select_pin_, wire::PinStatus::LOW);
   // transfert intruction
@@ -470,8 +473,8 @@ void W25Q128FlashMem<SPI_COM, WIRE>::global_block_lock() const {
 /**
  * @brief Unlock all blocks globally.
  */
-template <spi_com SPI_COM, wire_handler WIRE>
-void W25Q128FlashMem<SPI_COM, WIRE>::global_block_unlock() const {
+template <spi_com SPI_COM, iohandler_concept IOHANDLER>
+void W25Q128FlashMem<SPI_COM, IOHANDLER>::global_block_unlock() const {
   // check that write is enabled
   if (!is_write_enable()) {
     write_enable();
@@ -489,8 +492,8 @@ void W25Q128FlashMem<SPI_COM, WIRE>::global_block_unlock() const {
  * @brief Read protection status for the block at `addr`.
  * @return true if the block is locked.
  */
-template <spi_com SPI_COM, wire_handler WIRE>
-bool W25Q128FlashMem<SPI_COM, WIRE>::read_block_lock(uint32_t addr) const {
+template <spi_com SPI_COM, iohandler_concept IOHANDLER>
+bool W25Q128FlashMem<SPI_COM, IOHANDLER>::read_block_lock(uint32_t addr) const {
   auto instruct = static_cast<uint8_t>(w25q128::Instruction::kReadBlockLock);
   spi_->beginTransaction(clock_speed_, spi::BitOrder::MSBFIRST, spi::Mode::SPI_MODE3);
   wire_->write(chip_select_pin_, wire::PinStatus::LOW);
@@ -511,8 +514,8 @@ bool W25Q128FlashMem<SPI_COM, WIRE>::read_block_lock(uint32_t addr) const {
 /**
  * @brief Lock an individual block (block index provided in `addr`).
  */
-template <spi_com SPI_COM, wire_handler WIRE>
-void W25Q128FlashMem<SPI_COM, WIRE>::individual_block_lock(uint8_t addr) const {
+template <spi_com SPI_COM, iohandler_concept IOHANDLER>
+void W25Q128FlashMem<SPI_COM, IOHANDLER>::individual_block_lock(uint8_t addr) const {
   auto instruct = static_cast<uint8_t>(w25q128::Instruction::kIndividualBlockLock);
   spi_->beginTransaction(clock_speed_, spi::BitOrder::MSBFIRST, spi::Mode::SPI_MODE3);
   wire_->write(chip_select_pin_, wire::PinStatus::LOW);
@@ -529,8 +532,8 @@ void W25Q128FlashMem<SPI_COM, WIRE>::individual_block_lock(uint8_t addr) const {
 /**
  * @brief Unlock an individual block (block index provided in `addr`).
  */
-template <spi_com SPI_COM, wire_handler WIRE>
-void W25Q128FlashMem<SPI_COM, WIRE>::individual_block_unlock(uint8_t addr) const {
+template <spi_com SPI_COM, iohandler_concept IOHANDLER>
+void W25Q128FlashMem<SPI_COM, IOHANDLER>::individual_block_unlock(uint8_t addr) const {
   auto instruct = static_cast<uint8_t>(w25q128::Instruction::kIndividualBlockUnLock);
   spi_->beginTransaction(clock_speed_, spi::BitOrder::MSBFIRST, spi::Mode::SPI_MODE3);
   wire_->write(chip_select_pin_, wire::PinStatus::LOW);
@@ -547,7 +550,8 @@ void W25Q128FlashMem<SPI_COM, WIRE>::individual_block_unlock(uint8_t addr) const
 /**
  * @brief Suspend an ongoing program/erase operation (if supported by device).
  */
-template <spi_com SPI_COM, wire_handler WIRE> void W25Q128FlashMem<SPI_COM, WIRE>::suspend() const {
+template <spi_com SPI_COM, iohandler_concept IOHANDLER>
+void W25Q128FlashMem<SPI_COM, IOHANDLER>::suspend() const {
   spi_->beginTransaction(clock_speed_, spi::BitOrder::MSBFIRST, spi::Mode::SPI_MODE3);
   wire_->write(chip_select_pin_, wire::PinStatus::LOW);
   // transfer instruction
@@ -560,7 +564,8 @@ template <spi_com SPI_COM, wire_handler WIRE> void W25Q128FlashMem<SPI_COM, WIRE
 /**
  * @brief Resume a previously suspended program/erase operation.
  */
-template <spi_com SPI_COM, wire_handler WIRE> void W25Q128FlashMem<SPI_COM, WIRE>::resume() const {
+template <spi_com SPI_COM, iohandler_concept IOHANDLER>
+void W25Q128FlashMem<SPI_COM, IOHANDLER>::resume() const {
   spi_->beginTransaction(clock_speed_, spi::BitOrder::MSBFIRST, spi::Mode::SPI_MODE3);
   wire_->write(chip_select_pin_, wire::PinStatus::LOW);
   // transfer instruction
@@ -573,8 +578,8 @@ template <spi_com SPI_COM, wire_handler WIRE> void W25Q128FlashMem<SPI_COM, WIRE
 /**
  * @brief Put the device into low-power (power-down) mode.
  */
-template <spi_com SPI_COM, wire_handler WIRE>
-void W25Q128FlashMem<SPI_COM, WIRE>::power_down() const {
+template <spi_com SPI_COM, iohandler_concept IOHANDLER>
+void W25Q128FlashMem<SPI_COM, IOHANDLER>::power_down() const {
   spi_->beginTransaction(clock_speed_, spi::BitOrder::MSBFIRST, spi::Mode::SPI_MODE3);
   wire_->write(chip_select_pin_, wire::PinStatus::LOW);
   // transfer instruction
@@ -587,8 +592,8 @@ void W25Q128FlashMem<SPI_COM, WIRE>::power_down() const {
 /**
  * @brief Enter QPI (4-wire) mode if the device supports it.
  */
-template <spi_com SPI_COM, wire_handler WIRE>
-void W25Q128FlashMem<SPI_COM, WIRE>::qpi_mode() const {
+template <spi_com SPI_COM, iohandler_concept IOHANDLER>
+void W25Q128FlashMem<SPI_COM, IOHANDLER>::qpi_mode() const {
   spi_->beginTransaction(clock_speed_, spi::BitOrder::MSBFIRST, spi::Mode::SPI_MODE3);
   wire_->write(chip_select_pin_, wire::PinStatus::LOW);
   // transfer instruction
@@ -601,8 +606,8 @@ void W25Q128FlashMem<SPI_COM, WIRE>::qpi_mode() const {
 /**
  * @brief Send the Enable Reset command required before issuing a reset.
  */
-template <spi_com SPI_COM, wire_handler WIRE>
-void W25Q128FlashMem<SPI_COM, WIRE>::enable_reset() const {
+template <spi_com SPI_COM, iohandler_concept IOHANDLER>
+void W25Q128FlashMem<SPI_COM, IOHANDLER>::enable_reset() const {
   spi_->beginTransaction(clock_speed_, spi::BitOrder::MSBFIRST, spi::Mode::SPI_MODE3);
   wire_->write(chip_select_pin_, wire::PinStatus::LOW);
   // transfer instruction
@@ -615,16 +620,17 @@ void W25Q128FlashMem<SPI_COM, WIRE>::enable_reset() const {
 /**
  * @brief Compute the base address of the sector that contains `addr`.
  */
-template <spi_com SPI_COM, wire_handler WIRE>
-uint32_t W25Q128FlashMem<SPI_COM, WIRE>::compute_sector_addr(uint32_t addr,
-                                                             w25q128::SectorSize sector) const {
+template <spi_com SPI_COM, iohandler_concept IOHANDLER>
+uint32_t
+W25Q128FlashMem<SPI_COM, IOHANDLER>::compute_sector_addr(uint32_t addr,
+                                                         w25q128::SectorSize sector) const {
   return addr & (~static_cast<uint32_t>(sector) + 1);
 }
 /**
  * @brief Perform the device reset sequence (enable reset + reset command).
  */
-template <spi_com SPI_COM, wire_handler WIRE>
-void W25Q128FlashMem<SPI_COM, WIRE>::reset_device() const {
+template <spi_com SPI_COM, iohandler_concept IOHANDLER>
+void W25Q128FlashMem<SPI_COM, IOHANDLER>::reset_device() const {
   // firstly enable reset
   enable_reset();
   spi_->beginTransaction(clock_speed_, spi::BitOrder::MSBFIRST, spi::Mode::SPI_MODE3);
