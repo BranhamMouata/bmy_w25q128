@@ -1,28 +1,30 @@
 #pragma once
+#include "interrupt_concept.h"
 #include "iohandler_concept.h"
 #include "spi_concept.h"
 #include "w25q128_params.h"
 #include <array>
 #include <stdint.h>
 namespace bmy {
-template <spi_com SPI_COM, iohandler_concept IOHANDLER> class W25Q128FlashMemTest;
+template <spi_com SPI_COM, iohandler_concept IOHANDLER, interrupt_handler INTERRUPT>
+class W25Q128FlashMemTest;
 
 /**
  * @brief Driver wrapper for the W25Q128 SPI flash device.
  *
  * This is a small, hardware-abstracted driver implemented as a template so it
- * can work with different SPI and wire (GPIO) interface implementations.
+ * can work with different SPI and iohandler (GPIO) interface implementations.
  *
  * @tparam SPI_COM   Type implementing the SPI communication concept (must
  *                   provide transfer/beginTransaction/endTransaction semantics
  *                   expected by the implementation).
- * @tparam IOHANDLER      Type implementing simple wire operations (digitalWrite,
+ * @tparam IOHANDLER      Type implementing simple iohandler operations (digitalWrite,
  *                   pinMode, delay, ...). Used for chip-select and control
  *                   signalling.
  *
  * Usage example:
  * @code{.cpp}
- * bmy::W25Q128FlashMem<SPIWrapper, WireImpl> flash(&SPI0, &WireImpl::instance());
+ * bmy::W25Q128FlashMem<SPIWrapper, IohandlerImpl> flash(&SPI0, &IohandlerImpl::instance());
  * flash.init(CHIP_SELECT_PIN);
  * uint8_t id = flash.read_device_id();
  * @endcode
@@ -32,13 +34,16 @@ template <spi_com SPI_COM, iohandler_concept IOHANDLER> class W25Q128FlashMemTes
  * the public API. The implementation expects a 24-bit address space and
  * provides methods to operate on pages and sectors.
  */
-template <spi_com SPI_COM, iohandler_concept IOHANDLER> class W25Q128FlashMem {
-  friend W25Q128FlashMemTest<SPI_COM, IOHANDLER>;
+template <spi_com SPI_COM, iohandler_concept IOHANDLER, interrupt_handler INTERRUPT>
+class W25Q128FlashMem {
+  friend W25Q128FlashMemTest<SPI_COM, IOHANDLER, INTERRUPT>;
 
 public:
   using SPI_TYPE = SPI_COM;
   using IOHANDLER_TYPE = IOHANDLER;
-  W25Q128FlashMem(SPI_COM *spi, IOHANDLER *wire) : spi_(spi), wire_(wire) {}
+  using INTERRUPT_TYPE = INTERRUPT;
+  W25Q128FlashMem(SPI_COM *spi, IOHANDLER *iohandler, INTERRUPT *interrupt)
+      : spi_(spi), iohandler_(iohandler), interrupt_(interrupt) {}
   W25Q128FlashMem(const W25Q128FlashMem &) = delete;
   W25Q128FlashMem(W25Q128FlashMem &&) = delete;
   ~W25Q128FlashMem();
@@ -86,9 +91,9 @@ public:
 
   /**
    * @brief Erase a region starting at `addr` covering `size` bytes.
-   * @return true if the erase command was issued successfully.
+   * @return number of bytes erased.
    */
-  bool erase(uint32_t addr, uint32_t size) const;
+  uint32_t erase(uint32_t addr, uint32_t size) const;
 
   /**
    * @brief Issue a full chip erase (may take significant time).
@@ -119,7 +124,7 @@ public:
   void power_down() const;
 
   /**
-   * @brief Enter QPI (4-wire) mode if the device supports it.
+   * @brief Enter QPI (4-iohandler) mode if the device supports it.
    */
   void qpi_mode() const;
 
@@ -133,6 +138,11 @@ public:
    *        in a safe/idle state).
    */
   void close();
+
+  /**
+   * @brief Get the address size in bytes (should be 3 for W25Q128).
+   */
+  static consteval uint8_t address_size() { return addr_size_; }
 
 private:
   /**
@@ -264,8 +274,10 @@ private:
   uint8_t chip_select_pin_;
   // spi interface
   SPI_COM *spi_;
-  // wire interface
-  IOHANDLER *wire_;
+  // iohandler interface
+  IOHANDLER *iohandler_;
+  // interrupt handler interface
+  INTERRUPT *interrupt_;
 };
 } // namespace bmy
 #include "w25q128.tpp"

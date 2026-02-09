@@ -13,7 +13,7 @@ inline constexpr uint32_t kMemorySize = 16 * 1024 * 1024; // 16MB
 inline constexpr uint16_t kPageSize = 256;                // 256B
 inline constexpr uint16_t kSector4KBSize = 4 * 1024;      // 4KB
 inline constexpr uint16_t kSector32KBSize = 32 * 1024;    // 32KB
-inline constexpr uint32_t kSector64KBSize = 64 * 1024;    // 32KB
+inline constexpr uint32_t kSector64KBSize = 64 * 1024;    // 64KB
 inline constexpr uint32_t kPageNumber = kMemorySize / kPageSize;
 inline constexpr uint32_t kSector4KBNumber = kMemorySize / kSector4KBSize;
 inline constexpr uint32_t kBlock32KBNumber = kMemorySize / kSector32KBSize;
@@ -22,11 +22,12 @@ enum class SectorSize { k4KB = kSector4KBSize, k32KB = kSector32KBSize, k64KB = 
 inline constexpr uint32_t kMaxAddr = kMemorySize - 1;
 // TODO: Enable test partion only for test builds
 //~80% of memory is used for  production data and 20% for test data
+inline constexpr uint32_t kProductionMemstart = 0x000000;
 inline constexpr uint32_t kProductionkBlock64KB = kBlock64KBNumber * 0.8;
 inline constexpr uint32_t kProductionMemorySize = kProductionkBlock64KB * kSector64KBSize;
 // 2*64KB sectors will be used for meta data(product ID, software version, user ID, log,...)
 inline constexpr uint32_t kMetaDataSize = 2 * kSector64KBSize;
-inline constexpr uint32_t kDataMemAddrStart = 0x000000;
+inline constexpr uint32_t kDataMemAddrStart = kProductionMemstart;
 inline constexpr uint32_t kDataMemAddrEnd =
     kDataMemAddrStart + (kProductionMemorySize - kMetaDataSize) - 1;
 inline constexpr uint32_t kMetaDataMemAddrStart = kDataMemAddrEnd + 1;
@@ -39,9 +40,26 @@ inline constexpr uint32_t kTestMemorySize =
     bmy::w25q128::kMemorySize - bmy::w25q128::kProductionMemorySize;
 inline constexpr uint32_t kTestMetaDataSize = 2 * bmy::w25q128::kSector64KBSize;
 inline constexpr uint32_t kTestDataSize = kTestMemorySize - kTestMetaDataSize;
-inline constexpr uint32_t kTestDataMemAddrStart = bmy::w25q128::kProductionMemorySize;
+inline constexpr uint32_t kTestDataMemAddrStart =
+    bmy::w25q128::kProductionMemstart + bmy::w25q128::kProductionMemorySize;
 inline constexpr uint32_t kTestDataMemAddrEnd = kTestDataMemAddrStart + kTestDataSize - 1;
+// memory for memory basic operations test
+inline constexpr uint32_t kTestBasicOpsMemSize = 2 * bmy::w25q128::kSector64KBSize;
+inline constexpr uint32_t kTestBasicOpsMemAddrStart = kTestDataMemAddrStart;
+inline constexpr uint32_t kTestBasicOpsMemAddrEnd =
+    kTestBasicOpsMemAddrStart + kTestBasicOpsMemSize - 1;
+// memory for recording test
+inline constexpr uint32_t kTesRecordMemSize = 10 * bmy::w25q128::kSector64KBSize;
+inline constexpr uint32_t kTestRecordMemAddrStart =
+    kTestBasicOpsMemAddrStart + kTestBasicOpsMemSize;
+inline constexpr uint32_t kTestRecordMemAddrEnd = kTestRecordMemAddrStart + kTesRecordMemSize - 1;
+// meta data address
 inline constexpr uint32_t kTestMetaDataMemAddrStart = kTestDataMemAddrEnd + 1;
 inline constexpr uint32_t kTestMetaDataMemAddrEnd =
     kTestMetaDataMemAddrStart + kTestMetaDataSize - 1;
+inline constexpr uint32_t kProductIDAddr = kTestMetaDataMemAddrStart;
+inline constexpr uint32_t kSoftwareVersionAddr = kProductIDAddr + 4;
+inline constexpr uint32_t kUserIDAddr = kSoftwareVersionAddr + 4;
+inline constexpr uint32_t kLogAddr = kUserIDAddr + 8;
+
 } // namespace bmy::test::w25q128
